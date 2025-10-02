@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Voltron Lab</title>
+    
+    <!-- Bootstrap 5.3.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Fullcalendar -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.css' rel='stylesheet'>
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    
+    <style>
+        :root {
+            --color-primary: #f15a24;
+            --color-secondary: #004aad;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+        }
+        
+        .admin-container {
+            display: none;
+            padding: 2rem;
+        }
+        
+        .card {
+            border: none;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        
+        .btn-primary {
+            background-color: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--color-secondary);
+            border-color: var(--color-secondary);
+        }
+        
+        .calendar-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        
+        .turnos-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Form -->
+    <div class="login-container">
+        <div class="card">
+            <div class="card-body p-4">
+                <h2 class="text-center mb-4">Admin Login</h2>
+                <form id="login-form">
+                    <div class="mb-3">
+                        <label class="form-label">Usuario</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div class="admin-container">
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">Voltron Lab Admin</a>
+                <div class="navbar-nav me-auto">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="turnos">Turnos</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-section="pacientes">Pacientes</a>
+                        </li>
+                    </ul>
+                </div>
+                <button class="btn btn-outline-danger" id="logout-btn">Cerrar Sesión</button>
+            </div>
+        </nav>
+
+        <!-- Sección de Turnos -->
+        <div class="container-fluid section-content" id="turnos-section">
+            <div class="row">
+                <!-- Calendar Column -->
+                <div class="col-lg-8 mb-4">
+                    <div class="calendar-container">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3>Calendario de Turnos</h3>
+                            <select id="sede-select" class="form-select" style="width: 200px;">
+                                <option value="Belgrano">Belgrano</option>
+                                <option value="Palermo">Palermo</option>
+                                <option value="Caballito">Caballito</option>
+                            </select>
+                        </div>
+                        <div id="admin-calendar"></div>
+                    </div>
+                </div>
+
+                <!-- Controls Column -->
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h4>Agregar Turno</h4>
+                            <form id="turno-form">
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha y Hora</label>
+                                    <input type="datetime-local" class="form-control" id="fecha-turno" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Sede</label>
+                                    <select class="form-select" id="sede-turno" required>
+                                        <option value="Belgrano">Belgrano</option>
+                                        <option value="Palermo">Palermo</option>
+                                        <option value="Caballito">Caballito</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Agregar Turno</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="mb-3">Turnos Programados</h5>
+                                <div class="turnos-list" id="turnos-list">
+                                    <!-- Los turnos se cargarán dinámicamente aquí -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Pacientes -->
+    <div class="container-fluid section-content" id="pacientes-section" style="display: none;">
+        <div class="row">
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h4>Nuevo Paciente</h4>
+                        <form id="paciente-form">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" class="form-control" id="nombre-paciente" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Apellido</label>
+                                <input type="text" class="form-control" id="apellido-paciente" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">DNI</label>
+                                <input type="text" class="form-control" id="dni-paciente" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Teléfono</label>
+                                <input type="text" class="form-control" id="telefono-paciente">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Edad</label>
+                                <input type="number" class="form-control" id="edad-paciente">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Altura (cm)</label>
+                                <input type="number" step="0.01" class="form-control" id="altura-paciente">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Peso (kg)</label>
+                                <input type="number" step="0.01" class="form-control" id="peso-paciente">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Crear Paciente</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4>Lista de Pacientes</h4>
+                            <div class="input-group" style="width: 300px;">
+                                <input type="text" class="form-control" id="buscar-paciente" placeholder="Buscar paciente...">
+                                <button class="btn btn-outline-secondary" type="button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Apellido</th>
+                                        <th>DNI</th>
+                                        <th>Edad</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lista-pacientes">
+                                    <!-- Los pacientes se cargarán dinámicamente aquí -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ficha Médica -->
+    <div class="modal fade" id="ficha-medica-modal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ficha Médica</h5>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-danger me-2" onclick="eliminarPacienteActual()">
+                            <i class="fas fa-trash"></i> Eliminar Paciente
+                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4" id="info-paciente">
+                        <!-- La información del paciente se cargará aquí -->
+                    </div>
+                    <div class="mb-4">
+                        <h6>Agregar Nota</h6>
+                        <form id="nota-form">
+                            <div class="mb-3">
+                                <textarea class="form-control" id="contenido-nota" rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Agregar Nota</button>
+                        </form>
+                    </div>
+                    <div>
+                        <h6>Historial de Notas</h6>
+                        <div id="lista-notas">
+                            <!-- Las notas se cargarán dinámicamente aquí -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.js'></script>
+    <script src="/js/turnos.js"></script>
+    <script>
+        let token = localStorage.getItem('adminToken');
+        const loginContainer = document.querySelector('.login-container');
+        const adminContainer = document.querySelector('.admin-container');
+        let calendar;
+
+        // Verificar autenticación
+        if (token) {
+            showAdminPanel();
+        }
+
+        // Login Form
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            
+            // Limpiar mensajes de error previos
+            const errorDiv = document.getElementById('login-error');
+            if (errorDiv) errorDiv.remove();
+            
+            try {
+                // Deshabilitar el botón y mostrar loading
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Verificando...';
+                
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('adminToken', token);
+                    showAdminPanel();
+                } else {
+                    // Mostrar mensaje de error
+                    const errorMessage = document.createElement('div');
+                    errorMessage.id = 'login-error';
+                    errorMessage.className = 'alert alert-danger mt-3';
+                    errorMessage.textContent = data.error || 'Error de autenticación';
+                    e.target.appendChild(errorMessage);
+                }
+            } catch (error) {
+                // Mostrar mensaje de error
+                const errorMessage = document.createElement('div');
+                errorMessage.id = 'login-error';
+                errorMessage.className = 'alert alert-danger mt-3';
+                errorMessage.textContent = 'Error al conectar con el servidor';
+                e.target.appendChild(errorMessage);
+            } finally {
+                // Restaurar el botón
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            }
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('adminToken');
+            location.reload();
+        });
+
+        function showAdminPanel() {
+            loginContainer.style.display = 'none';
+            adminContainer.style.display = 'block';
+            initializeCalendar();
+            loadTurnos();
+        }
+
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('admin-calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'timeGridWeek',
+                locale: 'es',
+                slotMinTime: '08:00:00',
+                slotMaxTime: '20:00:00',
+                slotDuration: '01:00:00',
+                selectable: true,
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridWeek,timeGridDay'
+                },
+                select: function(info) {
+                    document.getElementById('fecha-turno').value = info.startStr.slice(0, 16);
+                }
+            });
+            calendar.render();
+            loadTurnos();
+        }
+
+        // Formulario de nuevo turno
+        document.getElementById('turno-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fecha = document.getElementById('fecha-turno').value;
+            const sede = document.getElementById('sede-turno').value;
+
+            try {
+                const response = await fetch('/api/admin/turnos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ fecha, sede })
+                });
+
+                if (response.ok) {
+                    loadTurnos();
+                    document.getElementById('turno-form').reset();
+                }
+            } catch (error) {
+                alert('Error al crear el turno');
+            }
+        });
+
+        async function loadTurnos() {
+            try {
+                const response = await fetch('/api/admin/turnos', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const turnos = await response.json();
+                
+                // Actualizar calendario
+                calendar.removeAllEvents();
+                turnos.forEach(turno => {
+                    // Asegurarnos de que tenemos un ID válido
+                    if (!turno._id) {
+                        console.error('Turno sin ID:', turno);
+                        return;
+                    }
+                    // Normalizar el flag 'disponible'
+                    const disponibleFlag = (turno.disponible === 1 || turno.disponible === '1' || turno.disponible === true || turno.disponible === 'true');
+                    // Si el turno está reservado (no disponible), mostrar en rojo y como 'Ocupado'
+                    const ocupado = !disponibleFlag || !!turno.reserva_id;
+                    const title = ocupado && turno.reserva_id ? `${turno.reserva_nombre} ${turno.reserva_apellido} - ${turno.sede}` : `Turno ${turno.sede}`;
+                    const color = ocupado ? '#dc3545' : '#28a745';
+                    calendar.addEvent({
+                        id: turno._id,
+                        title: title,
+                        start: turno.fecha,
+                        backgroundColor: color,
+                        extendedProps: {
+                            reserva: turno.reserva_id ? {
+                                id: turno.reserva_id,
+                                nombre: turno.reserva_nombre,
+                                apellido: turno.reserva_apellido,
+                                edad: turno.reserva_edad,
+                                motivo: turno.reserva_motivo,
+                                estado: turno.reserva_estado
+                            } : null
+                        }
+                    });
+                });
+
+                // Actualizar lista
+                const turnosList = document.getElementById('turnos-list');
+                turnosList.innerHTML = turnos
+                    .map(turno => {
+                        const fechaTexto = new Date(turno.fecha).toLocaleString();
+                        const disponible = (turno.disponible === 1 || turno.disponible === '1' || turno.disponible === true || turno.disponible === 'true');
+                        // Si existe reserva vinculada, mostrar datos del cliente y marcar como ocupado
+                        if (turno.reserva_id) {
+                            // Mostrar turno como ocupado y datos del cliente
+                            return `
+                                <div class="card mb-2 border-danger">
+                                    <div class="card-body d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>${fechaTexto}</strong><br>
+                                            <small>${turno.sede} - <span class="badge bg-danger">Ocupado</span></small>
+                                            <div class="mt-2">
+                                                <strong>Cliente:</strong> ${turno.reserva_nombre} ${turno.reserva_apellido}<br>
+                                                <strong>Edad:</strong> ${turno.reserva_edad}<br>
+                                                <strong>Motivo:</strong> ${turno.reserva_motivo}
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTurno('${turno._id}')"><i class="fas fa-trash"></i></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
+                        // Si el turno tiene reserva o no está disponible, mostrar 'Ocupado' y deshabilitar toggle
+                        const tieneReserva = !!turno.reserva_id;
+                        const ocupado = !disponible || tieneReserva;
+                        return `
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded border-${ocupado ? 'danger' : 'success'}">
+                                <div>
+                                    <strong>${fechaTexto}</strong>
+                                    <br>
+                                    <small>${turno.sede} - <span class="badge bg-${ocupado ? 'danger' : 'success'}">${ocupado ? 'Ocupado' : 'Disponible'}</span></small>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-${ocupado ? 'secondary' : 'success'}" ${ocupado ? 'disabled' : ''}
+                                            onclick="toggleDisponibilidad('${turno._id}', ${!disponible})">
+                                        ${ocupado ? 'Ocupado' : 'Disponible'}
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTurno('${turno._id}')">>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    })
+                    .join('');
+            } catch (error) {
+                console.error('Error al cargar turnos:', error);
+            }
+        }
+
+        async function toggleDisponibilidad(id, disponible) {
+            try {
+                const response = await fetch(`/api/admin/turnos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ disponible })
+                });
+
+                if (response.ok) {
+                    loadTurnos();
+                }
+            } catch (error) {
+                alert('Error al actualizar el turno');
+            }
+        }
+
+        async function deleteTurno(id) {
+            const result = await Swal.fire({
+                title: '¿Eliminar turno?',
+                text: 'Esta acción no se puede deshacer',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/api/admin/turnos/${id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Error al eliminar el turno');
+                    }
+
+                    await loadTurnos();
+                    Swal.fire('Eliminado', 'El turno ha sido eliminado', 'success');
+                } catch (error) {
+                    console.error('Error al eliminar turno:', error);
+                    Swal.fire('Error', error.message || 'Error al eliminar el turno', 'error');
+                }
+            }
+        }
+
+        async function loadReservas() {
+            try {
+                const response = await fetch('/api/admin/reservas', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const reservas = await response.json();
+                
+                // Actualizar badge
+                const badge = document.getElementById('reservas-badge');
+                if (reservas.length > 0) {
+                    badge.textContent = reservas.length;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                // (Se eliminó el panel de reservas. La información de reservas aparece junto a cada turno.)
+            } catch (error) {
+                console.error('Error al cargar reservas:', error);
+                Swal.fire('Error', 'Error al cargar las reservas', 'error');
+            }
+        }
+
+        // (Se eliminaron las funciones relacionadas con la pestaña de reservas y el polling.)
+
+        // Filtrar por sede
+        document.getElementById('sede-select').addEventListener('change', loadTurnos);
+
+        // Refrescar la lista de turnos periódicamente para reflejar cambios (por ejemplo: reservas que marcan el turno como ocupado)
+        setInterval(() => {
+            try { loadTurnos(); } catch (e) { console.warn('Error refrescando turnos:', e); }
+        }, 8000);
+
+        // Navegación entre secciones
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = e.target.dataset.section;
+                document.querySelectorAll('.section-content').forEach(content => {
+                    content.style.display = 'none';
+                });
+                document.getElementById(`${section}-section`).style.display = 'block';
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                e.target.classList.add('active');
+            });
+        });
+
+        // Establecer la sección de turnos como activa por defecto
+        document.querySelector('[data-section="turnos"]').classList.add('active');
+
+        // Manejo de pacientes
+        let pacienteActual = null;
+
+        // Cargar lista de pacientes
+        async function loadPacientes() {
+            try {
+                const response = await fetch('/api/admin/pacientes', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const pacientes = await response.json();
+                
+                const tbody = document.getElementById('lista-pacientes');
+                tbody.innerHTML = pacientes.map(paciente => `
+                    <tr>
+                        <td>${paciente.nombre}</td>
+                        <td>${paciente.apellido}</td>
+                        <td>${paciente.dni}</td>
+                        <td>${paciente.edad || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-2" onclick="verFichaMedica('${paciente._id}')">
+                                Ver Ficha
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="eliminarPaciente('${paciente._id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error al cargar pacientes:', error);
+                Swal.fire('Error', 'No se pudieron cargar los pacientes', 'error');
+            }
+        }
+
+        // Crear nuevo paciente
+        document.getElementById('paciente-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                nombre: document.getElementById('nombre-paciente').value,
+                apellido: document.getElementById('apellido-paciente').value,
+                dni: document.getElementById('dni-paciente').value,
+                telefono: document.getElementById('telefono-paciente').value,
+                edad: document.getElementById('edad-paciente').value,
+                altura: document.getElementById('altura-paciente').value,
+                peso: document.getElementById('peso-paciente').value
+            };
+
+            try {
+                const response = await fetch('/api/admin/pacientes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data) {
+                    Swal.fire('¡Éxito!', 'Paciente creado correctamente', 'success');
+                    e.target.reset();
+                    loadPacientes();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('Error al crear paciente:', error);
+                Swal.fire('Error', error.message || 'No se pudo crear el paciente', 'error');
+            }
+        });
+
+        // Ver ficha médica
+        async function verFichaMedica(pacienteId) {
+            try {
+                console.log('Intentando obtener ficha médica para paciente:', pacienteId);
+                const response = await fetch(`/api/admin/pacientes/${pacienteId}`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Datos recibidos:', data);
+                
+                pacienteActual = data.paciente;
+                
+                // Mostrar información del paciente
+                document.getElementById('info-paciente').innerHTML = `
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">${pacienteActual.nombre} ${pacienteActual.apellido}</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>DNI:</strong> ${pacienteActual.dni}</p>
+                                    <p class="mb-1"><strong>Edad:</strong> ${pacienteActual.edad || '-'}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Altura:</strong> ${pacienteActual.altura ? pacienteActual.altura + ' cm' : '-'}</p>
+                                    <p class="mb-1"><strong>Peso:</strong> ${pacienteActual.peso ? pacienteActual.peso + ' kg' : '-'}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong>Fecha de registro:</strong> ${new Date(pacienteActual.fecha_creacion).toLocaleDateString()}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Mostrar notas
+                const notasContainer = document.getElementById('lista-notas');
+                notasContainer.innerHTML = data.notas.map(nota => `
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <small class="text-muted">
+                                    ${new Date(nota.fecha).toLocaleString()}
+                                </small>
+                            </div>
+                            <p class="mb-0">${nota.contenido}</p>
+                        </div>
+                    </div>
+                `).join('') || '<p class="text-muted">No hay notas registradas</p>';
+
+                // Mostrar modal
+                const modal = new bootstrap.Modal(document.getElementById('ficha-medica-modal'));
+                modal.show();
+            } catch (error) {
+                console.error('Error al cargar ficha médica:', error);
+                Swal.fire('Error', 'No se pudo cargar la ficha médica', 'error');
+            }
+        }
+
+        // Agregar nota médica
+        document.getElementById('nota-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!pacienteActual) return;
+
+            const contenido = document.getElementById('contenido-nota').value;
+
+            try {
+                const response = await fetch(`/api/admin/pacientes/${pacienteActual._id}/notas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ contenido })
+                });
+
+                if (response.ok) {
+                    document.getElementById('contenido-nota').value = '';
+                    verFichaMedica(pacienteActual._id); // Recargar la ficha médica
+                    Swal.fire('¡Éxito!', 'Nota agregada correctamente', 'success');
+                } else {
+                    throw new Error('Error al agregar la nota');
+                }
+            } catch (error) {
+                console.error('Error al agregar nota:', error);
+                Swal.fire('Error', 'No se pudo agregar la nota', 'error');
+            }
+        });
+
+        // Búsqueda de pacientes
+        document.getElementById('buscar-paciente').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.getElementById('lista-pacientes').getElementsByTagName('tr');
+            
+            Array.from(rows).forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Función para eliminar paciente
+        async function eliminarPaciente(pacienteId) {
+            console.log('Intentando eliminar paciente:', pacienteId);
+            const result = await Swal.fire({
+                title: '¿Eliminar paciente?',
+                text: 'Esta acción eliminará toda la información del paciente y sus notas médicas. Esta acción no se puede deshacer.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#dc3545'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    console.log('Enviando solicitud DELETE a:', `/api/admin/pacientes/${pacienteId}`);
+                    const response = await fetch(`/api/admin/pacientes/${pacienteId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    console.log('Respuesta recibida:', response.status);
+                    const responseData = await response.text();
+                    console.log('Datos de respuesta:', responseData);
+
+                    if (!response.ok) {
+                        let errorMessage = 'Error al eliminar paciente';
+                        try {
+                            const errorData = JSON.parse(responseData);
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+                            console.error('Error parsing error response:', e);
+                        }
+                        throw new Error(errorMessage);
+                    }
+
+                    // Si el paciente se eliminó exitosamente
+                    await loadPacientes(); // Recargar lista de pacientes
+                    
+                    // Si el modal está abierto y es el mismo paciente, cerrarlo
+                    if (pacienteActual && pacienteActual._id === pacienteId) {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('ficha-medica-modal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                    }
+
+                    Swal.fire(
+                        'Eliminado',
+                        'El paciente ha sido eliminado correctamente',
+                        'success'
+                    );
+                } catch (error) {
+                    console.error('Error al eliminar paciente:', error);
+                    Swal.fire(
+                        'Error',
+                        error.message || 'No se pudo eliminar el paciente',
+                        'error'
+                    );
+                }
+            }
+        }
+
+        // Función para eliminar paciente desde el modal
+        function eliminarPacienteActual() {
+            if (pacienteActual) {
+                eliminarPaciente(pacienteActual._id);
+            }
+        }
+
+        // Cargar pacientes cuando se muestra la sección
+        document.querySelector('[data-section="pacientes"]').addEventListener('click', loadPacientes);
+    </script>
+</body>
+</html>

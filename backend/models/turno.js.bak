@@ -1,0 +1,346 @@
+const mongoose = require('mongoose');const mongoose = require('mongoose');
+
+
+
+const turnoSchema = new mongoose.Schema({const turnoSchema = new mongoose.Schema({
+
+    fecha: {    fecha: {
+
+        type: Date,        type: Date,
+
+        required: true        required: true
+
+    },    },
+
+    sede: {    sede: {
+
+        type: String,        type: String,
+
+        required: true        required: true
+
+    },    },
+
+    disponible: {    disponible: {
+
+        type: Boolean,        type: Boolean,
+
+        default: true        default: true
+
+    },    },
+
+    reserva: {    reserva: {
+
+        nombre: String,        nombre: String,
+
+        apellido: String,        apellido: String,
+
+        edad: Number,        edad: Number,
+
+        motivo: String,        motivo: String,
+
+        estado: {        estado: {
+
+            type: String,            type: String,
+
+            enum: ['pendiente', 'confirmada', 'rechazada'],            enum: ['pendiente', 'confirmada', 'rechazada'],
+
+            default: 'pendiente'            default: 'pendiente'
+
+        },        },
+
+        mensajeAdmin: String,        mensajeAdmin: String,
+
+        fechaReserva: {        fechaReserva: {
+
+            type: Date,            type: Date,
+
+            default: Date.now            default: Date.now
+
+        }        }
+
+    },    },
+
+    createdBy: {    createdBy: {
+
+        type: mongoose.Schema.Types.ObjectId,        type: mongoose.Schema.Types.ObjectId,
+
+        ref: 'Admin',        ref: 'Admin',
+
+        required: true        required: true
+
+    }    }
+
+}, {}, {
+
+    timestamps: true    timestamps: true
+
+});});
+
+
+
+// Índices para búsquedas frecuentes// Índices para búsquedas frecuentes
+
+turnoSchema.index({ fecha: 1 });turnoSchema.index({ fecha: 1 });
+
+turnoSchema.index({ sede: 1 });turnoSchema.index({ sede: 1 });
+
+turnoSchema.index({ createdBy: 1 });turnoSchema.index({ createdBy: 1 });
+
+turnoSchema.index({ 'reserva.estado': 1 });turnoSchema.index({ 'reserva.estado': 1 });
+
+
+
+// Métodos estáticos para manipulación de turnos// Índices para búsquedas frecuentes
+
+turnoSchema.statics.crear = async function(turnoData) {turnoSchema.index({ fecha: 1 });
+
+    const turno = new this({turnoSchema.index({ sede: 1 });
+
+        fecha: turnoData.fecha,turnoSchema.index({ createdBy: 1 });
+
+        sede: turnoData.sede,turnoSchema.index({ 'reserva.estado': 1 });
+
+        createdBy: turnoData.created_by        
+
+    });// Métodos estáticos para manipulación de turnos
+
+    await turno.save();turnoSchema.statics.crear = async function(turnoData) {
+
+    return turno;    const turno = new this({
+
+};        fecha: turnoData.fecha,
+
+        sede: turnoData.sede,
+
+turnoSchema.statics.actualizarDisponibilidad = async function(id, disponible, adminId) {        createdBy: turnoData.created_by
+
+    const turno = await this.findOneAndUpdate(    });
+
+        { _id: id, createdBy: adminId },    await turno.save();
+
+        { disponible },    return turno;
+
+        { new: true }};
+
+    );    }
+
+    return !!turno;
+
+};turnoSchema.statics.actualizarDisponibilidad = async function(id, disponible, adminId) {
+
+    const turno = await this.findOneAndUpdate(
+
+turnoSchema.statics.obtenerPorSede = async function(sede) {        { _id: id, createdBy: adminId },
+
+    const query = {        { disponible },
+
+        fecha: { $gte: new Date() },        { new: true }
+
+        disponible: true    );
+
+    };    return !!turno;
+
+    };
+
+    if (sede !== 'todas') {
+
+        query.sede = sede;turnoSchema.statics.obtenerPorSede = async function(sede) {
+
+    }    const query = {
+
+        fecha: { $gte: new Date() },
+
+    return this.find(query).sort({ fecha: 1 });        disponible: true
+
+};    };
+
+    
+
+turnoSchema.statics.obtenerTodos = async function(adminId) {    if (sede !== 'todas') {
+
+    return this.find({ createdBy: adminId }).sort({ fecha: 1 });        query.sede = sede;
+
+};    }
+
+
+
+turnoSchema.statics.eliminar = async function(id, adminId) {    return this.find(query).sort({ fecha: 1 });
+
+    const result = await this.deleteOne({ _id: id, createdBy: adminId });};
+
+    return result.deletedCount > 0;
+
+};turnoSchema.statics.obtenerTodos = async function(adminId) {
+
+    return this.find({ createdBy: adminId }).sort({ fecha: 1 });
+
+turnoSchema.statics.validarTurno = async function(turnoId) {};
+
+    const turno = await this.findOne({
+
+        _id: turnoId,turnoSchema.statics.eliminar = async function(id, adminId) {
+
+        disponible: true,    const result = await this.deleteOne({ _id: id, createdBy: adminId });
+
+        fecha: { $gte: new Date() }    return result.deletedCount > 0;
+
+    });};
+
+    return !!turno;
+
+};turnoSchema.statics.validarTurno = async function(turnoId) {
+
+    const turno = await this.findOne({
+
+turnoSchema.statics.obtenerReservasPendientes = async function() {        _id: turnoId,
+
+    return this.find({        disponible: true,
+
+        'reserva.estado': 'pendiente'        fecha: { $gte: new Date() }
+
+    })    });
+
+    .sort({ 'reserva.fechaReserva': -1 });    return !!turno;
+
+};};
+
+
+
+turnoSchema.statics.actualizarEstadoReserva = async function(turnoId, estado, mensaje) {turnoSchema.statics.obtenerReservasPendientes = async function() {
+
+    const turno = await this.findByIdAndUpdate(    return this.find({
+
+        turnoId,        'reserva.estado': 'pendiente'
+
+        {    })
+
+            'reserva.estado': estado,    .sort({ 'reserva.fechaReserva': -1 });
+
+            'reserva.mensajeAdmin': mensaje,};
+
+            'reserva.fechaActualizacion': new Date()
+
+        },turnoSchema.statics.actualizarEstadoReserva = async function(turnoId, estado, mensaje) {
+
+        { new: true }    const turno = await this.findByIdAndUpdate(
+
+    );        turnoId,
+
+        {
+
+    if (!turno) {            'reserva.estado': estado,
+
+        throw new Error('Turno no encontrado');            'reserva.mensajeAdmin': mensaje,
+
+    }            'reserva.fechaActualizacion': new Date()
+
+    return { success: true, message: 'Estado actualizado correctamente' };        },
+
+};        { new: true }
+
+    );
+
+turnoSchema.statics.reservar = async function(turnoData) {
+
+    const session = await mongoose.startSession();    if (!turno) {
+
+    session.startTransaction();        throw new Error('Turno no encontrado');
+
+    }
+
+    try {    return { success: true, message: 'Estado actualizado correctamente' };
+
+        // Validar datos requeridos};
+
+        if (!turnoData.turnoId || !turnoData.nombre || !turnoData.apellido || 
+
+            !turnoData.edad || !turnoData.motivo) {turnoSchema.statics.reservar = async function(turnoData) {
+
+            throw new Error('Faltan datos requeridos para la reserva');    const session = await mongoose.startSession();
+
+        }    session.startTransaction();
+
+
+
+        // Verificar y actualizar el turno en una sola operación    try {
+
+        const turno = await this.findOneAndUpdate(        // Validar datos requeridos
+
+            {        if (!turnoData.turnoId || !turnoData.nombre || !turnoData.apellido || 
+
+                _id: turnoData.turnoId,            !turnoData.edad || !turnoData.motivo) {
+
+                disponible: true,            throw new Error('Faltan datos requeridos para la reserva');
+
+                fecha: { $gte: new Date() }        }
+
+            },
+
+            {        // Verificar y actualizar el turno en una sola operación
+
+                disponible: false,        const turno = await this.findOneAndUpdate(
+
+                reserva: {            {
+
+                    nombre: turnoData.nombre,                _id: turnoData.turnoId,
+
+                    apellido: turnoData.apellido,                disponible: true,
+
+                    edad: turnoData.edad,                fecha: { $gte: new Date() }
+
+                    motivo: turnoData.motivo,            },
+
+                    fechaReserva: new Date()            {
+
+                }                disponible: false,
+
+            },                reserva: {
+
+            { new: true, session }                    nombre: turnoData.nombre,
+
+        );                    apellido: turnoData.apellido,
+
+                    edad: turnoData.edad,
+
+        if (!turno) {                    motivo: turnoData.motivo,
+
+            throw new Error('El turno seleccionado ya no está disponible');                    fechaReserva: new Date()
+
+        }                }
+
+            },
+
+        await session.commitTransaction();            { new: true, session }
+
+        return { success: true, message: 'Turno reservado exitosamente', turno };        );
+
+
+
+    } catch (error) {        if (!turno) {
+
+        await session.abortTransaction();            throw new Error('El turno seleccionado ya no está disponible');
+
+        throw error;        }
+
+    } finally {
+
+        session.endSession();        await session.commitTransaction();
+
+    }        return { success: true, message: 'Turno reservado exitosamente', turno };
+
+};
+
+    } catch (error) {
+
+const Turno = mongoose.model('Turno', turnoSchema);        await session.abortTransaction();
+
+        throw error;
+
+module.exports = Turno;    } finally {
+        session.endSession();
+    }
+};
+
+const Turno = mongoose.model('Turno', turnoSchema);
+
+module.exports = Turno;

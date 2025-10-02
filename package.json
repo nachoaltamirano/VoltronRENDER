@@ -1,0 +1,30 @@
+{
+  "name": "voltron-lab",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de turnos para Voltron Lab",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "build": "cd frontend && npm install && npm run build",
+    "postinstall": "cd backend && npm install",
+    "dev:backend": "cd backend && nodemon server.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "mongoose": "^8.0.0",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "concurrently": "^8.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
