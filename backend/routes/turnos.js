@@ -101,14 +101,13 @@ router.patch('/:id/reserva/estado', async (req, res) => {
 router.put('/:id/asignar', authenticateAdmin, async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, apellido, repetirMensualmente, numeroSesiones, fecha, sede } = req.body;
+        const { nombre, apellido, repetirMensualmente, fecha, sede } = req.body;
 
         console.log('Recibida solicitud para asignar turno:', {
             id,
             nombre,
             apellido,
             repetirMensualmente,
-            numeroSesiones,
             fecha,
             sede,
             adminId: req.adminId
@@ -136,30 +135,25 @@ router.put('/:id/asignar', authenticateAdmin, async (req, res) => {
         turnosCreados.push(turno);
 
         // Si se solicita repetición semanal, crear turnos adicionales
-        if (repetirMensualmente) {
+        if (req.body.repetirMensualmente) { // mantenemos el nombre del campo para no romper compatibilidad
             try {
-                const fechaBase = new Date(fecha);
+                const fechaBase = new Date(req.body.fecha);
                 const sedeAUsar = turno.sede || sede;
                 
                 console.log('Creando turnos semanales con:', {
-                    fechaBase,
+                    fechaBase: fechaBase.toISOString(),
                     sede: sedeAUsar,
-                    numeroSesiones
+                    totalTurnos: 12,
+                    intervalo: '7 días'
                 });
 
-                // Usar el número de sesiones especificado (mínimo 1, máximo 52)
-                const numSesiones = Math.min(Math.max(parseInt(numeroSesiones) || 1, 1), 52);
-                
-                // Crear turnos semanales (i comienza en 1 porque el turno original es la primera sesión)
-                for (let i = 1; i < numSesiones; i++) {
-                    const nuevaFecha = new Date(fechaBase);
+                // Crear turnos para las próximas 12 semanas (3 meses)
+                for (let i = 1; i <= 12; i++) {
+                    const nuevaFecha = new Date(fechaBase.getTime());
                     // Agregar 7 días (una semana) por cada iteración
-                    nuevaFecha.setDate(fechaBase.getDate() + (i * 7));
+                    nuevaFecha.setDate(nuevaFecha.getDate() + (i * 7));
                     
-                    // Verificar que no estamos creando un turno en un día pasado
-                    if (nuevaFecha < new Date()) {
-                        continue;
-                    }
+                    console.log(`Intentando crear turno para fecha: ${nuevaFecha.toISOString()}`);
 
                     // Mantener la misma hora del turno original
                     nuevaFecha.setHours(fechaBase.getHours());
@@ -177,9 +171,11 @@ router.put('/:id/asignar', authenticateAdmin, async (req, res) => {
                         createdBy: req.adminId
                     });
 
-                    console.log('Creando nuevo turno semanal:', {
-                        fecha: nuevaFecha,
-                        sede: sedeAUsar
+                    console.log(`Creando turno ${i} de 12:`, {
+                        fecha: nuevaFecha.toISOString(),
+                        sede: sedeAUsar,
+                        semana: i,
+                        diasAgregados: i * 7
                     });
 
                     await nuevoTurno.save();
