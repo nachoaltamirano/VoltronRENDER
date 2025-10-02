@@ -377,6 +377,96 @@
                 },
                 select: function(info) {
                     document.getElementById('fecha-turno').value = info.startStr.slice(0, 16);
+                },
+                eventClick: function(info) {
+                    const event = info.event;
+                    const turnoId = event.id;
+
+                    // Mostrar modal para asignar paciente
+                    Swal.fire({
+                        title: 'Asignar Paciente al Turno',
+                        html: `
+                            <form id="asignar-paciente-form" class="mt-3">
+                                <div class="mb-3">
+                                    <input type="text" id="nombre-paciente-turno" class="swal2-input" placeholder="Nombre del paciente">
+                                </div>
+                                <div class="mb-3">
+                                    <input type="text" id="apellido-paciente-turno" class="swal2-input" placeholder="Apellido del paciente">
+                                </div>
+                                <div class="mb-3 form-check" style="text-align: left; margin-left: 10px;">
+                                    <input type="checkbox" class="form-check-input" id="repetir-mensualmente">
+                                    <label class="form-check-label" for="repetir-mensualmente">
+                                        Repetir este turno todas las semanas
+                                    </label>
+                                </div>
+                            </form>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'Asignar',
+                        cancelButtonText: 'Cancelar',
+                        preConfirm: () => {
+                            const nombre = document.getElementById('nombre-paciente-turno').value;
+                            const apellido = document.getElementById('apellido-paciente-turno').value;
+                            const repetirMensualmente = document.getElementById('repetir-mensualmente').checked;
+                            
+                            if (!nombre || !apellido) {
+                                Swal.showValidationMessage('Por favor completa todos los campos');
+                                return false;
+                            }
+                            return { nombre, apellido, repetirMensualmente };
+                        }
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            try {
+                                console.log('Enviando solicitud para asignar turno:', turnoId);
+                                console.log('Event details:', event);
+                                const turnoFecha = new Date(event.start);
+                                const sede = event.title.split(' - ').pop(); // Extraer sede del título
+                                
+                                console.log('Enviando datos:', {
+                                    turnoId,
+                                    fecha: turnoFecha,
+                                    sede: sede
+                                });
+                                
+                                const response = await fetch(`/api/admin/turnos/${turnoId}/asignar`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({
+                                        nombre: result.value.nombre,
+                                        apellido: result.value.apellido,
+                                        repetirMensualmente: result.value.repetirMensualmente,
+                                        fecha: turnoFecha.toISOString(),
+                                        sede: sede
+                                    })
+                                });
+
+                                console.log('Respuesta del servidor:', response.status);
+                                const data = await response.text();
+                                console.log('Datos de respuesta:', data);
+
+                                if (!response.ok) {
+                                    let errorMessage = 'Error al asignar el turno';
+                                    try {
+                                        const errorData = JSON.parse(data);
+                                        errorMessage = errorData.error || errorMessage;
+                                    } catch (e) {
+                                        console.error('Error parsing error response:', e);
+                                    }
+                                    throw new Error(errorMessage);
+                                }
+
+                                await loadTurnos(); // Recargar turnos
+                                Swal.fire('¡Éxito!', 'Paciente asignado correctamente', 'success');
+                            } catch (error) {
+                                console.error('Error al asignar turno:', error);
+                                Swal.fire('Error', error.message || 'No se pudo asignar el paciente', 'error');
+                            }
+                        }
+                    });
                 }
             });
             calendar.render();
@@ -427,10 +517,22 @@
                     }
                     // Normalizar el flag 'disponible'
                     const disponibleFlag = (turno.disponible === 1 || turno.disponible === '1' || turno.disponible === true || turno.disponible === 'true');
-                    // Si el turno está reservado (no disponible), mostrar en rojo y como 'Ocupado'
-                    const ocupado = !disponibleFlag || !!turno.reserva_id;
-                    const title = ocupado && turno.reserva_id ? `${turno.reserva_nombre} ${turno.reserva_apellido} - ${turno.sede}` : `Turno ${turno.sede}`;
-                    const color = ocupado ? '#dc3545' : '#28a745';
+                    // Determinar el estado y color del turno
+                    let estado = 'disponible';
+                    let color = '#28a745'; // Verde para disponible
+                    let title = `Turno ${turno.sede}`;
+
+                    if (turno.asignado) {
+                        estado = 'asignado';
+                        color = '#ffc107'; // Amarillo para asignado
+                        title = `${turno.nombre_asignado} ${turno.apellido_asignado} - ${turno.sede}`;
+                    } else if (!disponibleFlag || !!turno.reserva_id) {
+                        estado = 'ocupado';
+                        color = '#dc3545'; // Rojo para ocupado
+                        if (turno.reserva_id) {
+                            title = `${turno.reserva_nombre} ${turno.reserva_apellido} - ${turno.sede}`;
+                        }
+                    }
                     calendar.addEvent({
                         id: turno._id,
                         title: title,

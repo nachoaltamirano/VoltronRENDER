@@ -13,6 +13,20 @@ const turnoSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    asignado: {
+        type: Boolean,
+        default: false
+    },
+    nombre_asignado: String,
+    apellido_asignado: String,
+    es_turno_repetido: {
+        type: Boolean,
+        default: false
+    },
+    turno_original_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Turno'
+    },
     reserva: {
         nombre: String,
         apellido: String,
